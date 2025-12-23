@@ -56,6 +56,7 @@ class Product(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class UserCreate(BaseModel):
     email: EmailStr = Field(description="Email пользователя")
     password: str = Field(min_length=8, description="Пароль (минимум 8 символов)")
@@ -68,3 +69,7 @@ class User(BaseModel):
     is_active: bool
     role: str
     model_config = ConfigDict(from_attributes=True)
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
