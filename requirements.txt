@@ -24,6 +24,7 @@ passlib==1.7.4
 platformdirs==4.5.0
 pydantic==2.12.4
 pydantic_core==2.41.5
+PyJWT==2.10.1
 pylint==4.0.4
 python-dotenv==1.2.1
 python-multipart==0.0.20
