@@ -1,7 +1,6 @@
 from app.models.users import User as UserModel
 from app.auth import get_current_seller
 from fastapi import APIRouter, Depends, HTTPException, status
-from select import select
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 

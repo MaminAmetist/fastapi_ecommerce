@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Optional
+
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from decimal import Decimal
 
@@ -73,3 +76,19 @@ class User(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+
+class ReviewCreate(BaseModel):
+    product_id: int
+    comment: Optional[str] = None
+    grade: int = Field(..., ge=1, le=5)
+
+
+class Review(BaseModel):
+    id: int
+    user_id: int
+    product_id: int
+    comment: Optional[str] = None
+    grade: int = Field(..., ge=1, le=5)
+    comment_date: datetime
+    is_active: bool
