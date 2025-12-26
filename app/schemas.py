@@ -75,7 +75,7 @@ class ProductList(BaseModel):
     page: int = Field(ge=1, description="Номер текущей страницы")
     page_size: int = Field(ge=1, description="Количество элементов на странице")
 
-    model_config = ConfigDict(from_attributes=True)  # Для чтения из ORM-объектов
+    model_config = ConfigDict(from_attributes=True)
 
 
 class User(BaseModel):

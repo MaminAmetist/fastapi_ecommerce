@@ -75,7 +75,7 @@ async def delete_review(
         current_user: UserModel = Depends(get_current_user)
 ):
     """
-    Выполняет мягкое удаление отзыва, если он принадлежит текущему покупателю (только для 'buyer').
+    Выполняет мягкое удаление отзыва.
     """
     if current_user.id != 'admin':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
