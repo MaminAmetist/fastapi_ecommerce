@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import categories, products, users, reviews, cart, orders
+from app.routers import categories, products, users, reviews, cart, orders, payments
 
 app = FastAPI(
     title="FastAPI Интернет-магазин",
@@ -16,6 +16,7 @@ app.include_router(users.router)
 app.include_router(reviews.router)
 app.include_router(cart.router)
 app.include_router(orders.router)
+app.include_router(payments.router)
 
 
 @app.get("/")

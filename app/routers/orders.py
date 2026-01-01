@@ -1,9 +1,10 @@
 from decimal import Decimal
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from app.payments import create_yookassa_payment
+from app.schemas import Order as OrderSchema, OrderCheckoutResponse, OrderList
 
 from app.auth import get_current_user
 from app.db_depends import get_async_db
@@ -18,7 +19,6 @@ router = APIRouter(
 )
 
 
-
 async def _load_order_with_items(db: AsyncSession, order_id: int) -> OrderModel | None:
     result = await db.scalars(
         select(OrderModel)
@@ -30,24 +30,26 @@ async def _load_order_with_items(db: AsyncSession, order_id: int) -> OrderModel 
     return result.first()
 
 
-
-
-@router.post("/checkout", response_model=OrderSchema, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/checkout",
+    response_model=OrderCheckoutResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def checkout_order(
-    db: AsyncSession = Depends(get_async_db),
-    current_user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_async_db),
+        current_user: UserModel = Depends(get_current_user),
 ):
     """
     Создаёт заказ на основе текущей корзины пользователя.
     Сохраняет позиции заказа, вычитает остатки и очищает корзину.
     """
-    cart_result = await db.scalars(
+    cart_result = await db.execute(
         select(CartItemModel)
         .options(selectinload(CartItemModel.product))
         .where(CartItemModel.user_id == current_user.id)
         .order_by(CartItemModel.id)
     )
-    cart_items = cart_result.all()
+    cart_items = list(cart_result.scalars().all())
     if not cart_items:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cart is empty")
 
@@ -89,6 +91,30 @@ async def checkout_order(
     order.total_amount = total_amount
     db.add(order)
 
+    try:
+        await db.flush()
+        payment_info = await create_yookassa_payment(
+            order_id=order.id,
+            amount=order.total_amount,
+            user_email=current_user.email,
+            description=f"Оплата заказа #{order.id}",
+        )
+    except RuntimeError as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        print(exc)
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Не удалось инициировать оплату",
+        ) from exc
+
+    order.payment_id = payment_info.get("id")
+
     await db.execute(delete(CartItemModel).where(CartItemModel.user_id == current_user.id))
     await db.commit()
 
@@ -98,16 +124,18 @@ async def checkout_order(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to load created order",
         )
-    return created_order
-
+    return OrderCheckoutResponse(
+        order=created_order,
+        confirmation_url=payment_info.get("confirmation_url"),
+    )
 
 
 @router.get("/", response_model=OrderList)
 async def list_orders(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
-    db: AsyncSession = Depends(get_async_db),
-    current_user: UserModel = Depends(get_current_user),
+        page: int = Query(1, ge=1),
+        page_size: int = Query(10, ge=1, le=100),
+        db: AsyncSession = Depends(get_async_db),
+        current_user: UserModel = Depends(get_current_user),
 ):
     """
     Возвращает заказы текущего пользователя с простой пагинацией.
@@ -128,13 +156,11 @@ async def list_orders(
     return OrderList(items=orders, total=total or 0, page=page, page_size=page_size)
 
 
-
-
 @router.get("/{order_id}", response_model=OrderSchema)
 async def get_order(
-    order_id: int,
-    db: AsyncSession = Depends(get_async_db),
-    current_user: UserModel = Depends(get_current_user),
+        order_id: int,
+        db: AsyncSession = Depends(get_async_db),
+        current_user: UserModel = Depends(get_current_user),
 ):
     """
     Возвращает детальную информацию по заказу, если он принадлежит пользователю.
@@ -143,13 +169,3 @@ async def get_order(
     if not order or order.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return order
-
-
-
-
-
-
-
-
-
-
