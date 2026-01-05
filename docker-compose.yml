@@ -1,0 +1,23 @@
+services:
+  web:
+    # Берем Dockerfile из каталога app
+    build:
+      context: .
+      dockerfile: ./app/Dockerfile
+    # Запускаем тестовый сервер
+    command: uvicorn app.main:app --host 0.0.0.0
+    # Открываем порт 8000 внутри и снаружи
+    ports:
+      - 8000:8000
+
+  db:
+      # ...
+      # Файл содержащий переменные окружения для контейнера
+      env_file:
+        - .env
+      # Используем значения переменных окружения из .env файла
+      environment:
+        - DATABASE_URL=${DATABASE_URL}
+        - SECRET_KEY=${SECRET_KEY}
+        - YOOKASSA_SHOP_ID = xxxxxx
+        - YOOKASSA_SECRET_KEY = live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
