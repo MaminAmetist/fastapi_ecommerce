@@ -1,6 +1,6 @@
 from uuid import uuid4
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from loguru import logger
@@ -31,7 +31,7 @@ async def log_middleware(request: Request, call_next):
         return response
 
 
-app.add_middleware(HTTPSRedirectMiddleware)
+#app.add_middleware(HTTPSRedirectMiddleware)
 
 app.mount("/media", StaticFiles(directory="media"), name="media")
 
@@ -44,7 +44,7 @@ app.include_router(orders.router)
 app.include_router(payments.router)
 
 
-@app.get("/")
+@app.get("/", response_class=PlainTextResponse)
 async def root():
     """
     Корневой маршрут, подтверждающий, что API работает.
