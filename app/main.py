@@ -1,6 +1,6 @@
 from uuid import uuid4
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from loguru import logger
@@ -44,9 +44,17 @@ app.include_router(orders.router)
 app.include_router(payments.router)
 
 
-@app.get("/", response_class=PlainTextResponse)
+# @app.get("/", response_class=PlainTextResponse)
+# async def root():
+#     """
+#     Корневой маршрут, подтверждающий, что API работает.
+#     """
+#     return {"message": "Добро пожаловать в API интернет-магазина!"}
+
+
+@app.get("/")
 async def root():
     """
     Корневой маршрут, подтверждающий, что API работает.
     """
-    return {"message": "Добро пожаловать в API интернет-магазина!"}
+    return RedirectResponse(url="/docs", status_code=302)
